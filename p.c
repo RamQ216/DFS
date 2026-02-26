@@ -1,127 +1,180 @@
-#include <stdio.h>
+#include <stdio.h>// necesario para la entrada y salida de datos
 #include <stdlib.h>
-#include <time.h>
-#include <windows.h> // Solo para Sleep
-//definimos las constantes de FILA Y COLUMNA.
-#define F 21
-#define C 21
+#include <time.h>//para el sleep
+#include <windows.h>
 
-char mapa[F][C];//definmos una matriz de tipo caracter co las constantes F Y C
 
-// 1. DIBUJAR (Usamos saltos de línea en lugar de limpiar pantalla)
-void dibujar() {
+//definimos variables globales
+int F = 21; 
+int C = 21;
+clock_t inicio_programa, fin_programa;
+//definimos constantes que funcionan como espacio para la memoria
+#define MAX_F 100 
+#define MAX_C 100
+//definimos una mtriz de tipo caracter
+char mapa[MAX_F][MAX_C]; 
+
+
+//creamos la matriz
+void matriz() {
+    inicio_programa= clock();
     for (int i = 0; i < F; i++) {
         for (int j = 0; j < C; j++) {
-            printf("%c ", mapa[i][j]);
+            printf("%c ", mapa[i][j]);// indicamos que vamos a recibir un dato de tipo caracter
         }
         printf("\n");
     }
 }
-
-// 2. CREAR LABERINTO (DFS - El explorador que va al fondo)
-
+//DFS
 void crear_laberinto(int f, int c) {
-    mapa[f][c] = ' '; // estamos crando un espacio vacio donde iniciamos
-    
-    int movimientos[] = {0, 1, 2, 3}; //creamos una lista del 0 al 3 donde cada uno representa un movimiento
+    mapa[f][c] = ' ';//creamos un espacio en la pos_actual 
+    int movimientos[] = {0, 1, 2, 3}; //creamos una lista con 4 mov posibles
     for (int i = 0; i < 4; i++) {
-        int mov_aleatorio = rand() % 4;// hacemos que la eleccion de estos elementos sea de manera random
-        int movi_temporal = movimientos[i];//guardam
-        movimientos[i] = movimientos[mov_aleatorio];
-        movimientos[mov_aleatorio] = movi_temporal;
+        int mov_aleatorio = rand() % 4;//creamos una vraible que guarda numeros random del 1 al 4
+        int movi_temporal = movimientos[i];//colocamos el mov dentro de un aux
+        movimientos[i] = movimientos[mov_aleatorio];//guardamos el numero aleatorio dentro de el mov
+        movimientos[mov_aleatorio] = movi_temporal;//guardamos el aux dentro de el mov aleatorio
     }
 
     for (int i = 0; i < 4; i++) {
-        int destino_fila = f, destino_columna = c, romperpared_fila = f, romperpared_columna = c;
+        int destino_fila = f, destino_columna = c, romperpared_fila = f, romperpared_columna = c;//definimos variables 
 
         if (movimientos[i] == 0) { 
             destino_fila = f - 2; romperpared_fila = f - 1; 
-        } // Arriba
+        } // romper pared de Arriba
         else if (movimientos[i] == 1) { 
             destino_fila = f + 2; romperpared_fila = f + 1; 
-        } // Abajo
+        } // romper pared de Abajo
         else if (movimientos[i] == 2) { 
             destino_columna = c - 2; romperpared_columna = c - 1; 
-        } // Izquierda
+        } // romper pared de la Izquierda
         else if (movimientos[i] == 3) { 
             destino_columna = c + 2; romperpared_columna = c + 1; 
-        } // Derecha
+        } // romper pared de la Derecha
 
-        if (destino_fila > 0 && destino_fila < F - 1 && destino_columna > 0 && destino_columna < C - 1) {
-            if (mapa[destino_fila][destino_columna] == '#') {
-                mapa[romperpared_fila][romperpared_columna] = ' ';
-                crear_laberinto(destino_fila, destino_columna);
+        if (destino_fila > 0 && destino_fila < F - 1 && destino_columna > 0 && destino_columna < C - 1) {//definier limites
+            if (mapa[destino_fila][destino_columna] == '#') {//condicional para que solo rompa lo que todavia no rompio
+                mapa[romperpared_fila][romperpared_columna] = ' ';// crea el camino o mejor dicho rompe un pared
+                crear_laberinto(destino_fila, destino_columna);//se llama asi misma para crear el laberinto ya hecho
             }
         }
     }
 }
 
-// 3. RESOLVER (BFS - El que encuentra el camino más corto)
-typedef struct { int f, c; } tupla_coordenada;// estamos empaquetando las coordenadas de fila y columna
+typedef struct { int f, c; } tupla_coordenada;//creamos una ficha o una variable capaz de guardar mas de un elemento
 
 void resolver_bfs() {
-    tupla_coordenada cola[F * C];//reservamos la memoria donde se van a guardar las coordenadas con una estructura de tipo cola
-    tupla_coordenada origen[F][C];// este nos sirve para guardar las rutas de donde nacio cada una por asi decirlo
-    int visitado[F][C] = {0};// este es nuestro seguro para que no vuelva a lugares por donde ya paso
-    int inicio = 0, fin = 0;//definimos las variables necesariar para el bfs
+    tupla_coordenada *cola = malloc(F * C * sizeof(tupla_coordenada)); // Usamos punteros o arreglos basados en el máximo para la cola
+    tupla_coordenada origen[MAX_F][MAX_C];//creamos una lista donde se guarda el camino recorrido
+    int visitado[MAX_F][MAX_C] = {0};//inicializamos en cero para no tener cache
+    int inicio = 0, fin = 0;//creamos variables para neustra cola
 
-    cola[fin++] = (tupla_coordenada){1, 1};//le designamos el primer valor y luego incrementamos el tamanho de la "lista"
-    visitado[1][1] = 1;//aplicamos el seguro hacemos que no vuelva a buscar la primera coordenada
+    cola[fin++] = (tupla_coordenada){1, 1};//guardamos la primer coordenada
+    visitado[1][1] = 1;//indicamos que la primer pos ya fue explorada 
 
-    int encontrado = 0;//bandera para avisar si ya encontro el resultado
-    while (inicio < fin) {
-        tupla_coordenada actual = cola[inicio++];//aca estamos haciendo que todas las coordenadas sean analizadas
+    int encontrado = 0;//bandera
+    while (inicio < fin) {//necesario para recorrer toda la lista
+        tupla_coordenada pos_actual = cola[inicio++];//guardamos la primera pos como la pos_actual y pasamos a la sig
 
-        if (actual.f == F - 2 && actual.c == C - 2) {// aca sera el caso base de neustro bucle
+        if (pos_actual.f == F - 2 && pos_actual.c == C - 2) {//  levantar bandera
             encontrado = 1;
             break;
         }
 
-        int movimientos_f[] = {-1, 1, 0, 0};//creamos los movientos de arriba y abajo
-        int movimientos_columna[] = {0, 0, -1, 1};//creamos los movimientos de izquirda y derecha
+        int movimientos_f[] = {-1, 1, 0, 0};//creamos mov de fila
+        int movimientos_columna[] = {0, 0, -1, 1};//creamos mov de columna
 
-        for (int i = 0; i < 4; i++) {//hace los calculos del movimiento
-            int destino_fila = actual.f + movimientos_f[i];
-            int destino_columna = actual.c + movimientos_columna[i];
+        for (int i = 0; i < 4; i++) {
+            int d_f = pos_actual.f + movimientos_f[i];//hacemos que el presonaje camie su pos de fila
+            int d_c = pos_actual.c + movimientos_columna[i];//hacemos que el presonaje camie su pos de columna
 
-            if (mapa[destino_fila][destino_columna] == ' ' && !visitado[destino_fila][destino_columna]) {
-                visitado[destino_fila][destino_columna] = 1;//antorcha de minecraft
-                origen[destino_fila][destino_columna] = actual;//es el gps te indica que camino recorriste
-                cola[fin++] = (tupla_coordenada){destino_fila, destino_columna};//colocamos las coordenadas dentro de neustra ficha y la preparamos para el siguiente dato
+            if (d_f >= 0 && d_f < F && d_c >= 0 && d_c < C && mapa[d_f][d_c] == ' ' && !visitado[d_f][d_c]) {//condicional para no salir del m
+                visitado[d_f][d_c] = 1;//marcamos los caminos recorridos
+                origen[d_f][d_c] = pos_actual;//cambiamos de posoicion
+                cola[fin++] = (tupla_coordenada){d_f, d_c};//guardamos en la cola las coordenadas ya vista
             }
         }
     }
 
-    if (encontrado) {
-        tupla_coordenada camino = {F - 2, C - 2};
-        while (camino.f != 1 || camino.c != 1) {
-            mapa[camino.f][camino.c] = 'E'; // creamos la ilusion de que el personaje se mueve
-            camino = origen[camino.f][camino.c];//sigue el camini de guardado de fin a inicio
-            dibujar();
-            printf("--- IA moviéndose por la ruta más corta ---\n");
-            Sleep(150);
+   if (encontrado) {
+
+    tupla_coordenada pasos[MAX_F * MAX_C];//creamos el espacio de memoria
+    int total_pasos = 0;//creamos el contador
+    
+    tupla_coordenada actual = {F - 2, C - 2};// posicion final o origen
+
+    // 2. Retrocedemos desde el final al inicio guardando los puntos
+    while (actual.f != 1 || actual.c != 1) {//aca hacemos el backtrakind
+        pasos[total_pasos++] = actual;//guardamos las posiciones ya recorridas
+        actual = origen[actual.f][actual.c];//guardamos el camino recorrido paso a paso
+    }
+    
+    pasos[total_pasos++] = (tupla_coordenada){1, 1};//puto de inicio
+
+    
+    for (int i = total_pasos - 1; i >= 0; i--) {//recorremos el bactrakind de manera inversa
+        tupla_coordenada p = pasos[i];//recorremos la lista de las coordenadas en orden de inicio a fin
+        
+        mapa[p.f][p.c] = 'E'; // Marcamos el camino co las E
+        
+        matriz();// volvemos a imprimir
+        printf("RECORRIENDO LABERINTO\n");
+        Sleep(150);//intervalo de tiempo
         }
     }
 }
 
-int main() {
-    srand(time(NULL));
 
-    // Llenar de paredes
-    for (int i = 0; i < F; i++)
-        for (int j = 0; j < C; j++)
+
+int main(int argc, char* argv[]) {//parametros necesario para cambiar la matriz desde terminal
+    srand(time(NULL));//hace que sea aleatorio de verdad
+
+    // 1. Procesar argumentos de consola
+    if (argc == 3) {//cantidad de palabras escritas por usuario
+        int filas_input = atoi(argv[1]);//transforma el caracter del numero e un entero
+        int cols_input = atoi(argv[2]);//transforma el caracter del numero e un entero
+
+        //hace que el codigo tenga un minimo de 5x5 y tambien que no supere el tamanho de memoria elegido
+        if (filas_input >= 5 && filas_input < MAX_F && cols_input >= 5 && cols_input < MAX_C) {
+            F = filas_input;
+            C = cols_input;
+        } else {// si es que no se cumplen las condicionales se ejecuta en 21x21
+            printf("Error: Dimensiones invalidas. Se usara el tamano por defecto (21x21).\n");
+            printf("El rango permitido es de 5 a %d.\n", MAX_F - 1);
+            F = 21;
+            C = 21;
+        }
+
+        // SUGERENCIA DE PARIDAD: Ajustar a números impares
+        // Si el usuario pone 10, lo bajamos a 9 para que el borde encaje
+        if (F % 2 == 0) F--;
+        if (C % 2 == 0) C--;
+    }
+
+    //crea el tablero llenito de paredes
+    for (int i = 0; i < F; i++) {
+        for (int j = 0; j < C; j++) {
             mapa[i][j] = '#';
+        }
+    }
 
+    // le indicamos  los valores iniciales
     crear_laberinto(1, 1);
+    
+    // Colocar entrada y salida
     mapa[1][0] = '[';
     mapa[F - 2][C - 1] = ']';
 
-    dibujar();
-    printf("\nGenerado con DFS. BFS calculando linea mas corta");
-    Sleep(100);
+    matriz();
+    printf("\nDimensiones: %dx%d", F, C);
+    printf("\ncalculando ruta optima");
+    Sleep(200);
 
     resolver_bfs();
 
     printf("\n¡Ruta optima completada!\n");
+    fin_programa=clock();
+    float tiempo=((double) (fin_programa-inicio_programa))/ CLOCKS_PER_SEC;
+    printf("el tiempo trans currido fue %f", tiempo);
     return 0;
 }
