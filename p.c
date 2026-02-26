@@ -1,7 +1,7 @@
 #include <stdio.h>// necesario para la entrada y salida de datos
-#include <stdlib.h>
-#include <time.h>//para el sleep
-#include <windows.h>
+#include <stdlib.h>//para guardar el espacio de memoria
+#include <time.h>//para saber el tiempo de ejecucion
+#include <windows.h>//para el sleep
 
 
 //definimos variables globales
